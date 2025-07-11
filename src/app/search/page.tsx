@@ -5,12 +5,27 @@ import { supabase } from '@/lib/supabase';
 export default function SearchPage() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
+  const [searchType, setSearchType] = useState<'voice_actor' | 'character'>('voice_actor');
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Busca dubladores
-  const searchVoiceActor = async () => {
-    const res = await fetch(`https://api.jikan.moe/v4/people?q=${query}`);
-    const data = await res.json();
-    setResults(data.data || []);
+  // Função de busca com loading
+  const searchData = async () => {
+    setIsLoading(true);
+    const endpoint =
+      searchType === 'voice_actor'
+        ? `https://api.jikan.moe/v4/people?q=${query}`
+        : `https://api.jikan.moe/v4/characters?q=${query}`;
+
+    try {
+      const res = await fetch(endpoint);
+      const data = await res.json();
+      setResults(data.data || []);
+    } catch (error) {
+      console.error('Erro na busca:', error);
+      setResults([]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Salva dublador favorito
@@ -39,16 +54,31 @@ export default function SearchPage() {
         <a href="/login" className="text-blue-500">Login</a>
       </div>
 
+      <div className="flex mb-4">
+        <select
+          value={searchType}
+          onChange={(e) => setSearchType(e.target.value as any)}
+          className="border p-2 rounded"
+        >
+          <option value="voice_actor">Dubladores</option>
+          <option value="character">Personagens</option>
+        </select>
+      </div>
+
       <div className="flex">
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Digite o nome do dublador..."
+          placeholder={
+            searchType === 'voice_actor'
+              ? 'Digite o nome do dublador...'
+              : 'Digite o nome do personagem...'
+          }
           className="border p-2 rounded w-full"
         />
         <button
-          onClick={searchVoiceActor}
+          onClick={searchData}
           className="bg-blue-500 text-white p-2 rounded ml-2"
         >
           Buscar
@@ -56,22 +86,39 @@ export default function SearchPage() {
       </div>
 
       <div className="mt-4">
-        {results.map((va) => (
-          <div key={va.mal_id} className="border p-4 mb-2 rounded">
-            <h2 className="text-xl font-bold">{va.name}</h2>
-            <img
-              src={va.images.jpg.image_url}
-              alt={va.name}
-              className="w-20 h-20 rounded-full mt-2"
-            />
-            <button
-              onClick={() => saveFavorite(va.mal_id, va.name)}
-              className="bg-pink-500 text-white p-2 rounded mt-2"
-            >
-              Favoritar ★
-            </button>
+        {isLoading ? (
+          <div className="animate-pulse space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="bg-gray-200 h-20 rounded" />
+            ))}
           </div>
-        ))}
+        ) : (
+          results.map((item) => (
+            <div key={item.mal_id} className="border p-4 mb-2 rounded">
+              <h2 className="text-xl font-bold">
+                {item.name}
+              </h2>
+              <img
+                src={
+                  searchType === 'voice_actor'
+                    ? item.images?.jpg?.image_url
+                    : item.images?.jpg?.image_url
+                }
+                alt={item.name}
+                className="w-20 h-20 rounded-full mt-2"
+              />
+
+              {searchType === 'voice_actor' && (
+                <button
+                  onClick={() => saveFavorite(item.mal_id, item.name)}
+                  className="bg-pink-500 text-white p-2 rounded mt-2"
+                >
+                  Favoritar ★
+                </button>
+              )}
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

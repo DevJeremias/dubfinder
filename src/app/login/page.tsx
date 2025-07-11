@@ -1,12 +1,22 @@
 'use client';
 import { supabase } from '@/lib/supabase';
+import toast from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
+  const router = useRouter();
+
   const handleLogin = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'github', // ou 'google'
+      provider: 'google',
     });
-    if (error) console.error(error);
+
+    if (error) {
+      toast.error('Erro ao fazer login: ' + error.message);
+    } else {
+      toast.success('Redirecionando...');
+      setTimeout(() => router.push('/profile'), 1500);
+    }
   };
 
   return (
@@ -14,9 +24,9 @@ export default function LoginPage() {
       <h1 className="text-2xl font-bold">Login</h1>
       <button
         onClick={handleLogin}
-        className="bg-gray-800 text-white p-2 rounded mt-4"
+        className="bg-red-500 text-white p-2 rounded mt-4"
       >
-        Entrar com GitHub
+        Entrar com Google
       </button>
     </div>
   );
